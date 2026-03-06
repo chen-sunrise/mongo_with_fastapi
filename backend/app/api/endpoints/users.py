@@ -26,6 +26,8 @@ async def login_access_token(db: AsyncMongoClient, form_data: OAuth2PasswordRequ
 async def register_in_public_scope(*, db: AsyncMongoClient, user_in: schemas.IUserCreate) -> Any:
     user_res = await crud.user.create(db, obj_in=user_in)
     user_obj = await crud.user.first_by_id(db, _id=user_res.inserted_id)
+    if user_obj is None:
+        raise HTTPException(status_code=500, detail="User registration failed")
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(user_obj.id, expires_delta=access_token_expires)
@@ -40,7 +42,10 @@ async def get_me(*, current_user: CurrentUser):
 @router.put("/obj", response_model=schemas.IUserDetail)
 async def update_user(*, db: AsyncMongoClient, current_user: CurrentUser, obj_in: schemas.IUserUpdate):
     await crud.user.update(db, _id=current_user.id, obj_in=obj_in)
-    return await crud.user.first_by_id(db, _id=current_user.id)
+    updated_user = await crud.user.first_by_id(db, _id=current_user.id)
+    if updated_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated_user
 
 
 @router.put("/reset_password", response_model=schemas.IUserDetail)
@@ -50,7 +55,10 @@ async def reset_password(*, db: AsyncMongoClient, current_user: CurrentUser, pas
         return current_user
 
     await crud.user.update(db, _id=current_user.id, obj_in={"hashed_password": security.get_password_hash(password)})
-    return await crud.user.first_by_id(db, _id=current_user.id)
+    updated_user = await crud.user.first_by_id(db, _id=current_user.id)
+    if updated_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated_user
 
 
 @router.delete("/obj", response_model=bool)

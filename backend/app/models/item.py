@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from app.utils import PydanticObjectId
 
-from .base import MongoObjectBase
+from .base import MongoObjectBase, SchemaBase
 
 
 class ItemBase(BaseModel):
@@ -12,4 +12,4 @@ class ItemBase(BaseModel):
     owner: PydanticObjectId
 
 
-class Item(MongoObjectBase, ItemBase): ...
+class Item(MongoObjectBase, SchemaBase, ItemBase): ...

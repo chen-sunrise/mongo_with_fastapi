@@ -35,8 +35,11 @@ This is a FastAPI-based backend project using MongoDB as the database, managed b
 ## Features
 
 - **API Endpoints**: Provides user registration, login, and profile retrieval.
+- **API v2**: Adds a response envelope (`data`, `meta`, `error`) and cursor-based pagination for high-concurrency read paths.
 - **User Authentication**: JWT-based authentication and authorization.
 - **CRUD Operations**: Encapsulated data manipulation functions.
+- **Runtime Resilience**: Lifespan-managed Mongo/Redis clients, request timeout guard, rate limiting, and graceful dependency degradation.
+- **Health and Metrics**: `/health/live`, `/health/ready`, `/metrics` endpoints for readiness probes and Prometheus scraping.
 - **Reverse Proxy**: Traefik-enabled dynamic routing and load balancing.
 - **Configuration Management**: Gunicorn setup for production deployments.
 - **Testing Support**: Ready for extended automated testing.
@@ -63,16 +66,40 @@ This is a FastAPI-based backend project using MongoDB as the database, managed b
 
 Configured in the .env file, including:
 
-- **DB_URL**: Database connection URL
 - **SECRET_KEY**: Secret key for JWT encryption
-- **ALGORITHM**: JWT encryption algorithm
 - **ACCESS_TOKEN_EXPIRE_MINUTES**: Expiration time for access tokens (minutes)
+- **MONGO_DB_URI**: Replica set URI, e.g. `mongodb://mongo1:27017,mongo2:27017,mongo3:27017/?replicaSet=rs0`
+- **MONGO_DB_DATABASE**: Mongo database name
+- **MONGO_DB_USER_COLLECTION**: User collection name
+- **MONGO_DB_ITEM_COLLECTION**: Item collection name
+- **MONGO_MAX_POOL_SIZE / MONGO_MIN_POOL_SIZE**: Mongo connection pool limits
+- **MONGO_SERVER_SELECTION_TIMEOUT_MS**: Mongo selection timeout
+- **MONGO_MAX_IDLE_TIME_MS**: Mongo max idle connection time
+- **REDIS_URL**: Redis connection URL, e.g. `redis://redis:6379/0`
+- **CACHE_TTL_SECONDS**: Redis cache TTL
+- **RATE_LIMIT_PER_MINUTE**: Generic read rate limit
+- **LOGIN_RATE_LIMIT_PER_MINUTE**: Login rate limit
+- **REQUEST_TIMEOUT_MS**: Request timeout guard
 
 ### Traefik Reverse Proxy
 
 Use the docker-compose.traefik.yml configuration file for Traefik, managing dynamic routing within the Docker network to ensure container accessibility across services.
 
+### New Runtime Endpoints
 
+- `GET /health/live`
+- `GET /health/ready`
+- `GET /metrics`
+- `POST /api/v2/users/access-token`
+- `POST /api/v2/users/register`
+- `GET /api/v2/users/me`
+- `GET /api/v2/items/list?cursor=<id>&limit=<n>`
+
+### Performance and Rollout Assets
+
+- Baseline load test script: `tests/load/k6_baseline.js`
+- Baseline template and SLO gate: `docs/perf/baseline.md`
+- Gray-release playbook: `docs/rollout/gray-release.md`
 
 
 

@@ -30,5 +30,5 @@ def test_get_sort_returns_sort_pairs_when_order_by_is_valid():
 def test_get_sort_raises_assertion_for_invalid_input(order_by):
     query = QueryBase(order_by=order_by)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         query.get_sort()

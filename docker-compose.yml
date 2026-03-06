@@ -1,31 +1,87 @@
 services:
-
   backend:
     image: backend:latest
     ports:
-      - 8000:80
+      - "8000:80"
     env_file:
       - .env
     restart: unless-stopped
-    command: /start-reload.sh
-    volumes:
-      - ./backend/app:/code/app
-      - ./pyproject.toml:/code/pyproject.toml
-      - ./poetry.lock:/code/poetry.lock
+    command: /start.sh
     build:
       context: .
       dockerfile: ./backend/Dockerfile
     depends_on:
-      - mongodb
+      mongo-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
 
-
-  mongodb:
-    image: mongo:latest
+  mongo1:
+    image: mongo:7
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     volumes:
-      - mongodb:/data/db
-    ports: 
-      - 25015:27017
+      - mongo1_data:/data/db
+    ports:
+      - "25015:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
+  mongo2:
+    image: mongo:7
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    volumes:
+      - mongo2_data:/data/db
+
+  mongo3:
+    image: mongo:7
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    volumes:
+      - mongo3_data:/data/db
+
+  mongo-init:
+    image: mongo:7
+    depends_on:
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_started
+      mongo3:
+        condition: service_started
+    restart: on-failure
+    entrypoint:
+      - bash
+      - -c
+      - |
+        mongosh --host mongo1:27017 <<'SCRIPT'
+        try {
+          rs.status();
+          print('Replica set already initialized');
+        } catch (err) {
+          rs.initiate({
+            _id: 'rs0',
+            members: [
+              { _id: 0, host: 'mongo1:27017' },
+              { _id: 1, host: 'mongo2:27017' },
+              { _id: 2, host: 'mongo3:27017' }
+            ]
+          });
+          print('Replica set initialized');
+        }
+        SCRIPT
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
 
 volumes:
-  mongodb:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:
+  redis_data:

@@ -35,8 +35,11 @@
 ## 功能
 
 - **API 端点**：提供用户注册、登录、获取信息等接口。
+- **API v2**：新增统一响应结构（`data`、`meta`、`error`）和 cursor 分页能力。
 - **用户认证**：支持 JWT 令牌的认证与授权。
 - **CRUD 操作**：封装了数据操作的基本功能。
+- **运行时稳健性**：生命周期托管 Mongo/Redis 客户端，支持超时保护、限流和降级。
+- **健康检查与监控**：新增 `/health/live`、`/health/ready`、`/metrics` 端点。
 - **反向代理**：利用 Traefik 进行服务的动态路由和负载均衡。
 - **配置管理**：Gunicorn 用于生产环境的应用部署。
 - **测试支持**：包含测试文件，便于扩展自动化测试。
@@ -63,11 +66,34 @@
 
 配置位于 .env 文件中，包含以下参数：
 
-- **DB_URL**：数据库连接 URL
-- **SECRET_KEY：JWT** 加密密钥
-- **ALGORITHM**：JWT 加密算法
+- **MONGO_DB_URI**：Mongo 副本集连接地址，例如 `mongodb://mongo1:27017,mongo2:27017,mongo3:27017/?replicaSet=rs0`
+- **MONGO_DB_DATABASE**：Mongo 数据库名
+- **MONGO_DB_USER_COLLECTION**：用户集合名
+- **MONGO_DB_ITEM_COLLECTION**：物品集合名
+- **SECRET_KEY**：JWT 加密密钥
 - **ACCESS_TOKEN_EXPIRE_MINUTES**：访问令牌过期时间（分钟）
+- **REDIS_URL**：Redis 连接地址，例如 `redis://redis:6379/0`
+- **CACHE_TTL_SECONDS**：缓存 TTL（秒）
+- **RATE_LIMIT_PER_MINUTE**：读请求限流
+- **LOGIN_RATE_LIMIT_PER_MINUTE**：登录限流
+- **REQUEST_TIMEOUT_MS**：请求超时阈值（毫秒）
 
 Traefik 反向代理
 
 使用 docker-compose.traefik.yml 配置文件，通过 Traefik 管理服务路由。将应用部署在 docker network 中，方便其他容器访问。
+
+### 新增运行时端点
+
+- `GET /health/live`
+- `GET /health/ready`
+- `GET /metrics`
+- `POST /api/v2/users/access-token`
+- `POST /api/v2/users/register`
+- `GET /api/v2/users/me`
+- `GET /api/v2/items/list?cursor=<id>&limit=<n>`
+
+### 性能与发布资产
+
+- 压测脚本：`tests/load/k6_baseline.js`
+- 基线与 SLO 模板：`docs/perf/baseline.md`
+- 灰度发布手册：`docs/rollout/gray-release.md`

@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
-from .base import MongoObjectBase
+from .base import MongoObjectBase, SchemaBase
 
 
 class UserBase(BaseModel):
@@ -11,4 +11,4 @@ class UserBase(BaseModel):
     hashed_password: str
 
 
-class User(MongoObjectBase, UserBase): ...
+class User(MongoObjectBase, SchemaBase, UserBase): ...
